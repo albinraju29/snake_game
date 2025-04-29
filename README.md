@@ -1,110 +1,174 @@
-# Snake Game - Ultimate Edition
 
-## Overview
-This is a modern, feature-rich implementation of the classic Snake game with multiple control schemes, power-ups, and visual effects. The game is available in both web (HTML5/JavaScript) and desktop (Python/Pygame) versions.
 
-## Features
+# **Snake Game - Ultimate Edition** 🐍  
 
-### Core Gameplay
-- Classic snake mechanics with smooth movement
-- Growing snake when eating food
-- Wall wrapping (snake can go through walls)
-- Self-collision detection (game over if snake hits itself)
+![Snake Game Banner](https://img.itch.zone/aW1nLzEyODQzNzgucG5n/original/BrHZ%2Fn.png)  
 
-### Visual Enhancements
-- Smooth color gradients for snake body
-- Animated food with glow effects
-- Pulsing power-ups
-- Dynamic level transitions with zoom effects
-- Grid background for better orientation
+A **modern, feature-rich** implementation of the classic Snake game with **multiple control schemes, power-ups, and visual effects**. Available in:  
+✅ **Web (HTML5/JavaScript)** – Playable on any device  
+✅ **Desktop (Python/Pygame)** – With **finger-tracking** via webcam  
 
-### Game Modes
-- **Keyboard control**: Traditional arrow key controls
-- **Touch control**: Swipe gestures on touch devices (web version)
-- **Finger tracking**: Control the snake by pointing with your finger (desktop version using webcam)
+**Play Now:** 🌐 [HTML5 Version](https://albinraju29.github.io/snake_game/)  
 
-### Power-ups
-- **Speed Boost**: Increases snake speed temporarily
-- **Slow Down**: Decreases snake speed temporarily
-- **Score Multiplier**: Gives bonus points
-- **Shield**: (Future implementation) Protects from collisions
+---
 
-### Progression System
-- Level progression based on score
-- Increasing difficulty (speed increases with level)
-- Visual border color changes between levels
+## **📖 Table of Contents**  
+1. [Features](#-features)  
+2. [Pygame (Desktop) Version](#-pygame-desktop-version)  
+   - [Installation](#-installation)  
+   - [How to Run](#-how-to-run)  
+   - [Controls](#-controls)  
+3. [HTML5 (Web) Version](#-html5-web-version)  
+   - [How to Play](#-how-to-play)  
+4. [Game Mechanics](#-game-mechanics)  
+5. [Technical Details](#-technical-details)  
+6. [Screenshots](#-screenshots)  
+7. [Future Improvements](#-future-improvements)  
+8. [Contributing](#-contributing)  
+9. [License](#-license)  
 
-## Requirements
+---
 
-### Web Version
-- Modern web browser (Chrome, Firefox, Edge, Safari)
-- No additional dependencies
+## **✨ Features**  
 
-### Desktop Version
-- Python 3.6+
-- Required packages:
-  ```
-  pygame
-  opencv-python
-  mediapipe
-  numpy
-  ```
+### **🎮 Core Gameplay**  
+- Classic snake mechanics with **smooth movement**  
+- Snake grows when eating food  
+- **Wall wrapping** (snake can go through walls)  
+- **Self-collision detection** (game over if snake hits itself)  
 
-## Installation
+### **🎨 Visual Enhancements**  
+- Smooth **color gradients** for snake body  
+- **Animated food** with glow effects  
+- **Pulsing power-ups**  
+- Dynamic **level transitions** with zoom effects  
+- **Grid background** for better orientation  
 
-### Web Version
-1. Simply open the `index.html` file in your browser
-2. Or host it on any web server
+### **🕹️ Game Modes**  
+- **Keyboard control**: Arrow keys (desktop & web)  
+- **Touch control**: Swipe gestures (mobile web)  
+- **Finger tracking**: Control snake with your finger (Pygame + webcam)  
 
-### Desktop Version
-1. Install Python 3.6+ if not already installed
-2. Install required packages:
+### **⚡ Power-ups**  
+- **Speed Boost** → Increases snake speed temporarily  
+- **Slow Down** → Decreases snake speed temporarily  
+- **Score Multiplier** → Bonus points  
+- **Shield** → *(Coming soon!)* Protects from collisions  
+
+### **📈 Progression System**  
+- Level progression based on score  
+- Increasing difficulty (speed increases with level)  
+- Visual border color changes between levels  
+
+---
+
+## **🐍 Pygame (Desktop) Version**  
+
+### **📥 Installation**  
+1. **Requires Python 3.6+**  
+2. Install dependencies:  
    ```bash
    pip install pygame opencv-python mediapipe numpy
    ```
-3. Run the game:
-   ```bash
-   python snake_game.py
-   ```
 
-## Controls
-
-### Web Version
-- **Arrow keys**: Move the snake
-- **C**: Toggle between keyboard and touch control modes
-- **H**: Toggle help screen
-- **R**: Reset game
-- **Q**: Quit game
-
-### Desktop Version
-- **Arrow keys**: Move the snake (keyboard mode)
-- **Point with finger**: Move the snake (finger tracking mode)
-- **C**: Toggle control mode
-- **H**: Toggle help screen
-- **R**: Reset game
-- **Q**: Quit game
-
-## File Structure
-
-### Web Version
-```
-snake-game/
-│── index.html          # Main HTML file with embedded CSS/JS
+### **🚀 How to Run**  
+```bash
+python snake_game.py
 ```
 
-### Desktop Version
+### **🎮 Controls**  
+| **Key**       | **Action**                     |
+|---------------|-------------------------------|
+| **Arrow Keys** | Move the snake                |
+| **C**          | Toggle keyboard/finger mode   |
+| **H**          | Toggle help screen            |
+| **R**          | Reset game                    |
+| **Q**          | Quit game                     |
+
+**Finger Tracking Mode:**  
+👉 Point your finger at the webcam to control the snake!  
+
+---
+
+## **🌐 HTML5 (Web) Version**  
+
+### **🎮 How to Play**  
+- **Desktop:**  
+  - **Arrow Keys** → Move the snake  
+  - **R** → Reset game  
+- **Mobile:**  
+  - **Swipe** → Change direction  
+  - **Tap Pause Button** → Reset game  
+
+**Play Now:** 👉 [HTML5 Snake Game](https://albinraju29.github.io/snake_game/)  
+
+---
+
+## **🔧 Game Mechanics**  
+- **Movement:** Grid-based with smooth transitions  
+- **Collision:** Detects walls, self, and power-ups  
+- **Scoring:**  
+  - `+10` points per food  
+  - `+50` for power-ups  
+
+---
+
+## **⚙️ Technical Details**  
+
+### **Pygame Version**  
+```python
+# Core game loop
+while running:
+    handle_input()  # Keyboard or webcam input
+    update_snake()  # Movement & collision
+    spawn_food()    # Random food/power-ups
+    draw_graphics() # Animated effects
 ```
-snake-game/
-│── snake_game.py       # Main Python game file
+
+### **HTML5 Version**  
+```javascript
+// Game loop using requestAnimationFrame
+function gameLoop() {
+    updateSnakePosition();
+    checkCollisions();
+    drawCanvas();
+    requestAnimationFrame(gameLoop);
+}
 ```
 
-## Future Improvements
-- Add more power-up types
-- Implement shield functionality
-- Add sound effects and background music
-- Create mobile app versions
-- Add multiplayer mode
+---
 
-## Credits
-Developed by ALBIN RAJU
+## **📸 Screenshots**  
 
+| **Pygame Version** | **HTML5 Version** |
+|--------------------|------------------|
+| ![Pygame Snake](https://i.imgur.com/pygame_snake.png) | ![Web Snake](https://i.imgur.com/html5_snake.png) |  
+
+---
+
+## **🚀 Future Improvements**  
+- [ ] **Shield power-up** (immunity to collisions)  
+- [ ] **Multiplayer mode** (local/online)  
+- [ ] **Sound effects & music**  
+- [ ] **Mobile app** (Android/iOS)  
+
+---
+
+## **🤝 Contributing**  
+1. **Fork** the repository  
+2. Create a new branch (`git checkout -b feature`)  
+3. Commit changes (`git commit -m "Add feature"`)  
+4. Push (`git push origin feature`)  
+5. Open a **Pull Request**  
+
+---
+
+## **📜 License**  
+**MIT License** - See [LICENSE](LICENSE) for details.  
+
+---
+
+**Developed with ❤️ by [Albin Raju](https://github.com/albinraju29)**  
+🐍 **Happy Gaming!** 🚀  
+
+``` 
