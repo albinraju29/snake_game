@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Ultimate Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+        }
+        
+        #game-canvas {
+            border: 5px solid white;
+            background-color: black;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+        }
+        
+        #high-score-display {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            color: yellow;
+            font-size: 16px;
+        }
+        
+        #mode-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 16px;
+            text-align: right;
+        }
+        
+        #difficulty-display {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            font-size: 16px;
+            text-align: right;
+        }
+        
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        #game-over-title {
+            font-size: 64px;
+            font-weight: bold;
+            color: red;
+            margin-bottom: 40px;
+        }
+        
+        #final-score {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        #final-high-score {
+            font-size: 48px;
+            color: yellow;
+            margin-bottom: 60px;
+        }
+        
+        .game-over-text {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        
+        #help-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .help-text {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="score-display">Score: 0</div>
+            <div id="high-score-display">High: 0</div>
+            <div id="mode-display">Mode: KEYBOARD</div>
+            <div id="difficulty-display" style="color: green;">Level: Easy</div>
+        </div>
+        
+        <div id="game-over-screen">
+            <div id="game-over-title">GAME OVER</div>
+            <div id="final-score">Score: 0</div>
+            <div id="final-high-score">High Score: 0</div>
+            <div class="game-over-text">Press R to Restart</div>
+            <div class="game-over-text">Press Q to Quit</div>
+        </div>
+        
+        <div id="help-screen">
+            <div class="help-text" style="font-weight: bold; margin-bottom: 10px;">CONTROLS:</div>
+            <div class="help-text">Arrow Keys - Move</div>
+            <div class="help-text">C - Toggle control mode</div>
+            <div class="help-text">H - Toggle this help</div>
+            <div class="help-text" style="margin-top: 10px;">R - Reset game</div>
+            <div class="help-text">Q - Quit game</div>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const WIDTH = 800;
+        const HEIGHT = 600;
+        const CELL_SIZE = 20;
+        
+        // Colors
+        const BLACK = '#000000';
+        const WHITE = '#FFFFFF';
+        const GREEN = '#00FF00';
+        const RED = '#FF0000';
+        const BLUE = '#0000FF';
+        const YELLOW = '#FFFF00';
+        const ORANGE = '#FFA500';
+        const PURPLE = '#800080';
+        const DARK_GREEN = '#00B400';
+        const DARK_ORANGE = '#C86400';
+        const DARK_RED = '#B40000';
+        const GRID_COLOR = '#1E1E1E';
+        const CYAN = '#00FFFF';
+        const MAGENTA = '#FF00FF';
+        
+        // Directions
+        const UP = { x: 0, y: -1 };
+        const DOWN = { x: 0, y: 1 };
+        const LEFT = { x: -1, y: 0 };
+        const RIGHT = { x: 1, y: 0 };
+        
+        // Game elements
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const modeDisplay = document.getElementById('mode-display');
+        const difficultyDisplay = document.getElementById('difficulty-display');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const finalHighScoreDisplay = document.getElementById('final-high-score');
+        const helpScreen = document.getElementById('help-screen');
+        
+        // Game state
+        let snake;
+        let food;
+        let powerups = [];
+        let score = 0;
+        let highScore = 0;
+        let gameState = "playing"; // "playing" or "gameOver"
+        let showHelp = true;
+        let helpTimer = 0;
+        let controlMode = "keyboard"; // "keyboard" or "touch"
+        let lastUpdateTime = 0;
+        let level = 1;
+        let targetScore = 10;
+        let borderColor = WHITE;
+        let transitionTimer = 0;
+        let zooming = false;
+        let gameSpeed = 10; // Updates per second
+        let lastFrameTime = 0;
+        
+        // PowerUp class
+        class PowerUp {
+            constructor() {
+                this.types = ["speed_boost", "slow_down", "score_multiplier", "shield"];
+                this.type = this.types[Math.floor(Math.random() * this.types.length)];
+                this.position = { x: 0, y: 0 };
+                this.color = this.getColor();
+                this.duration = 300; // frames (5 seconds at 60fps)
+                this.active = false;
+                this.spawnTime = Date.now();
+                this.randomizePosition();
+                this.size = CELL_SIZE;
+                this.pulsePhase = 0;
+            }
+            
+            getColor() {
+                return {
+                    "speed_boost": CYAN,
+                    "slow_down": MAGENTA,
+                    "score_multiplier": YELLOW,
+                    "shield": BLUE
+                }[this.type];
+            }
+            
+            randomizePosition() {
+                this.position = {
+                    x: Math.floor(Math.random() * (WIDTH / CELL_SIZE)) * CELL_SIZE,
+                    y: Math.floor(Math.random() * (HEIGHT / CELL_SIZE)) * CELL_SIZE
+                };
+            }
+            
+            update() {
+                this.pulsePhase = (this.pulsePhase + 0.05) % (2 * Math.PI);
+                this.size = CELL_SIZE * (0.9 + 0.1 * Math.sin(this.pulsePhase));
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    this.size / 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                
+                // Draw outer ring
+                ctx.strokeStyle = WHITE;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    this.size / 2 + 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.stroke();
+            }
+        }
+        
+        // Snake class
+        class Snake {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.positions = [{ x: WIDTH / 2, y: HEIGHT / 2 }];
+                this.direction = RIGHT;
+                this.nextDirection = RIGHT;
+                this.growPending = false;
+                this.speed = 10;
+                this.length = 1;
+                this.difficulty = "Easy";
+                this.bodyColors = [];
+                this.updateBodyColors();
+            }
+            
+            move() {
+                // Update direction from the buffered next direction
+                this.direction = this.nextDirection;
+                
+                const head = this.positions[0];
+                const newHead = {
+                    x: (head.x + this.direction.x * CELL_SIZE + WIDTH) % WIDTH,
+                    y: (head.y + this.direction.y * CELL_SIZE + HEIGHT) % HEIGHT
+                };
+                
+                if (this.growPending) {
+                    this.positions.unshift(newHead);
+                    this.length++;
+                    this.updateDifficulty();
+                    this.updateBodyColors();
+                    this.growPending = false;
+                } else {
+                    this.positions = [newHead, ...this.positions.slice(0, -1)];
+                }
+            }
+            
+            updateDifficulty() {
+                if (this.length < 10) {
+                    this.difficulty = "Easy";
+                } else if (this.length < 20) {
+                    this.difficulty = "Medium";
+                } else {
+                    this.difficulty = "Hard";
+                }
+                
+                // Update difficulty display color
+                difficultyDisplay.style.color = 
+                    this.difficulty === "Easy" ? GREEN : 
+                    this.difficulty === "Medium" ? ORANGE : RED;
+                difficultyDisplay.textContent = `Level: ${this.difficulty}`;
+            }
+            
+            updateBodyColors() {
+                this.bodyColors = [];
+                for (let i = 0; i < this.length; i++) {
+                    if (this.difficulty === "Easy") {
+                        const intensity = 150 + Math.floor(105 * (i / this.length));
+                        this.bodyColors.push(`rgb(0, ${intensity}, 0)`);
+                    } else if (this.difficulty === "Medium") {
+                        const intensityR = 200 + Math.floor(55 * (i / this.length));
+                        const intensityG = 100 + Math.floor(155 * (i / this.length));
+                        this.bodyColors.push(`rgb(${intensityR}, ${intensityG}, 0)`);
+                    } else {
+                        const intensityR = 180 + Math.floor(75 * (i / this.length));
+                        const intensityB = Math.floor(75 * (i / this.length));
+                        this.bodyColors.push(`rgb(${intensityR}, 0, ${intensityB})`);
+                    }
+                }
+            }
+            
+            grow() {
+                this.growPending = true;
+            }
+            
+            changeDirection(newDirection) {
+                // Prevent reversing
+                if (newDirection.x !== -this.direction.x || newDirection.y !== -this.direction.y) {
+                    this.nextDirection = newDirection;
+                }
+            }
+            
+            draw(ctx) {
+                // Draw body first (so head appears on top)
+                for (let i = 1; i < this.positions.length; i++) {
+                    const pos = this.positions[i];
+                    const colorIndex = Math.min(i - 1, this.bodyColors.length - 1);
+                    ctx.fillStyle = this.bodyColors[colorIndex];
+                    ctx.fillRect(pos.x, pos.y, CELL_SIZE, CELL_SIZE);
+                    
+                    // Add subtle border between segments
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.strokeRect(pos.x, pos.y, CELL_SIZE, CELL_SIZE);
+                }
+                
+                // Draw head
+                const head = this.positions[0];
+                ctx.fillStyle = BLUE;
+                ctx.beginPath();
+                ctx.arc(
+                    head.x + CELL_SIZE / 2,
+                    head.y + CELL_SIZE / 2,
+                    CELL_SIZE / 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                
+                // Draw eyes based on direction
+                const eyeSize = CELL_SIZE / 5;
+                let eye1Pos, eye2Pos;
+                
+                if (this.direction === RIGHT) {
+                    eye1Pos = {
+                        x: head.x + CELL_SIZE / 2 + CELL_SIZE / 4,
+                        y: head.y + CELL_SIZE / 3
+                    };
+                    eye2Pos = {
+                        x: head.x + CELL_SIZE / 2 + CELL_SIZE / 4,
+                        y: head.y + (2 * CELL_SIZE) / 3
+                    };
+                } else if (this.direction === LEFT) {
+                    eye1Pos = {
+                        x: head.x + CELL_SIZE / 2 - CELL_SIZE / 4,
+                        y: head.y + CELL_SIZE / 3
+                    };
+                    eye2Pos = {
+                        x: head.x + CELL_SIZE / 2 - CELL_SIZE / 4,
+                        y: head.y + (2 * CELL_SIZE) / 3
+                    };
+                } else if (this.direction === UP) {
+                    eye1Pos = {
+                        x: head.x + CELL_SIZE / 3,
+                        y: head.y + CELL_SIZE / 2 - CELL_SIZE / 4
+                    };
+                    eye2Pos = {
+                        x: head.x + (2 * CELL_SIZE) / 3,
+                        y: head.y + CELL_SIZE / 2 - CELL_SIZE / 4
+                    };
+                } else { // DOWN
+                    eye1Pos = {
+                        x: head.x + CELL_SIZE / 3,
+                        y: head.y + CELL_SIZE / 2 + CELL_SIZE / 4
+                    };
+                    eye2Pos = {
+                        x: head.x + (2 * CELL_SIZE) / 3,
+                        y: head.y + CELL_SIZE / 2 + CELL_SIZE / 4
+                    };
+                }
+                
+                // Draw eyes
+                ctx.fillStyle = WHITE;
+                ctx.beginPath();
+                ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw eye pupils
+                ctx.fillStyle = BLACK;
+                ctx.beginPath();
+                ctx.arc(eye1Pos.x, eye1Pos.y, eyeSize/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(eye2Pos.x, eye2Pos.y, eyeSize/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            checkCollision() {
+                const head = this.positions[0];
+                for (let i = 1; i < this.positions.length; i++) {
+                    if (head.x === this.positions[i].x && head.y === this.positions[i].y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // Food class
+        class Food {
+            constructor() {
+                this.position = { x: 0, y: 0 };
+                this.color = RED;
+                this.glowPhase = 0;
+                this.sizePhase = 0;
+                this.randomizePosition();
+            }
+            
+            randomizePosition() {
+                this.position = {
+                    x: Math.floor(Math.random() * (WIDTH / CELL_SIZE)) * CELL_SIZE,
+                    y: Math.floor(Math.random() * (HEIGHT / CELL_SIZE)) * CELL_SIZE
+                };
+            }
+            
+            update() {
+                this.glowPhase = (this.glowPhase + 0.05) % (2 * Math.PI);
+                this.sizePhase = (this.sizePhase + 0.1) % (2 * Math.PI);
+                
+                const glowIntensity = Math.floor((Math.sin(this.glowPhase) + 1) * 50);
+                this.color = `rgb(${Math.min(255, 255 + glowIntensity)}, 
+                                 ${Math.min(255, 0 + Math.floor(glowIntensity / 2))}, 
+                                 ${Math.min(255, 0 + Math.floor(glowIntensity / 3))})`;
+            }
+            
+            draw(ctx) {
+                const sizeFactor = 0.8 + 0.2 * Math.sin(this.sizePhase);
+                const currentSize = Math.floor(CELL_SIZE * sizeFactor);
+                
+                // Draw glow effect
+                const gradient = ctx.createRadialGradient(
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    0,
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    currentSize / 2
+                );
+                gradient.addColorStop(0, this.color);
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0.5)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    currentSize / 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                
+                // Draw core
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(
+                    this.position.x + CELL_SIZE / 2,
+                    this.position.y + CELL_SIZE / 2,
+                    currentSize / 3,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+        }
+        
+        // Initialize game
+        function initGame() {
+            snake = new Snake();
+            food = new Food();
+            powerups = [];
+            score = 0;
+            gameState = "playing";
+            level = 1;
+            targetScore = 10;
+            borderColor = WHITE;
+            transitionTimer = 0;
+            zooming = false;
+            gameSpeed = 10;
+            
+            // Make sure food doesn't spawn on snake
+            while (snake.positions.some(segment => 
+                   segment.x === food.position.x && segment.y === food.position.y)) {
+                food.randomizePosition();
+            }
+            
+            scoreDisplay.textContent = `Score: ${score}`;
+            difficultyDisplay.textContent = `Level: ${snake.difficulty}`;
+            difficultyDisplay.style.color = GREEN;
+            gameOverScreen.style.display = "none";
+            
+            // Show help at start
+            showHelp = true;
+            helpTimer = 0;
+            if (showHelp) {
+                helpScreen.style.display = "flex";
+            } else {
+                helpScreen.style.display = "none";
+            }
+        }
+        
+        // Update level system
+        function updateLevelSystem() {
+            if (score >= targetScore) {
+                level++;
+                targetScore = level * 15;
+                borderColor = `rgb(${100 + Math.floor(Math.random() * 155)}, 
+                                  ${100 + Math.floor(Math.random() * 155)}, 
+                                  ${100 + Math.floor(Math.random() * 155)})`;
+                transitionTimer = 30; // 0.5 seconds at 60fps
+                zooming = true;
+                gameSpeed += 1;
+                return true;
+            }
+            return false;
+        }
+        
+        // Draw border and level
+        function drawBorder(ctx) {
+            if (transitionTimer > 0) {
+                transitionTimer--;
+                
+                // Create zoom effect (simplified for HTML5)
+                const zoomFactor = 1.0 + 0.05 * Math.sin(transitionTimer * 0.2);
+                ctx.save();
+                ctx.translate(WIDTH / 2, HEIGHT / 2);
+                ctx.scale(zoomFactor, zoomFactor);
+                ctx.translate(-WIDTH / 2, -HEIGHT / 2);
+                
+                if (transitionTimer === 0) {
+                    zooming = false;
+                }
+            }
+            
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 5;
+            ctx.strokeRect(0, 0, WIDTH, HEIGHT);
+            
+            // Draw level indicator
+            ctx.font = "24px Arial";
+            ctx.fillStyle = borderColor;
+            const levelText = `Level: ${level}`;
+            const textWidth = ctx.measureText(levelText).width;
+            ctx.fillText(levelText, WIDTH - textWidth - 20, HEIGHT - 40);
+            
+            if (zooming) {
+                ctx.restore();
+            }
+        }
+        
+        // Draw grid
+        function drawGrid(ctx) {
+            ctx.strokeStyle = GRID_COLOR;
+            ctx.lineWidth = 1;
+            
+            // Vertical lines
+            for (let x = 0; x <= WIDTH; x += CELL_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, HEIGHT);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= HEIGHT; y += CELL_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(WIDTH, y);
+                ctx.stroke();
+            }
+        }
+        
+        // Game over screen
+        function showGameOver() {
+            gameState = "gameOver";
+            finalScoreDisplay.textContent = `Score: ${score}`;
+            finalHighScoreDisplay.textContent = `High Score: ${highScore}`;
+            gameOverScreen.style.display = "flex";
+        }
+        
+        // Main game loop
+        function gameLoop(timestamp) {
+            // Calculate time since last frame
+            const deltaTime = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+            
+            // Clear canvas with opaque black
+            ctx.fillStyle = BLACK;
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            
+            // Draw grid first
+            drawGrid(ctx);
+            
+            if (gameState === "playing") {
+                // Update game elements at fixed time steps
+                const updateInterval = 1000 / gameSpeed;
+                let numUpdates = 0;
+                
+                while (timestamp - lastUpdateTime >= updateInterval && numUpdates < 5) {
+                    // Update game state
+                    snake.move();
+                    food.update();
+                    
+                    // Check for collisions
+                    if (snake.checkCollision()) {
+                        if (score > highScore) {
+                            highScore = score;
+                            highScoreDisplay.textContent = `High: ${highScore}`;
+                        }
+                        showGameOver();
+                        break;
+                    }
+                    
+                    // Check if snake ate food
+                    const head = snake.positions[0];
+                    if (head.x === food.position.x && head.y === food.position.y) {
+                        snake.grow();
+                        food.randomizePosition();
+                        
+                        // Make sure food doesn't spawn on snake
+                        while (snake.positions.some(segment => 
+                               segment.x === food.position.x && segment.y === food.position.y)) {
+                            food.randomizePosition();
+                        }
+                        
+                        score++;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        
+                        // Chance to spawn powerup
+                        if (Math.random() < 0.3 && powerups.length < 2) {
+                            const newPowerup = new PowerUp();
+                            
+                            // Make sure powerup doesn't spawn on snake or food
+                            while (snake.positions.some(segment => 
+                                   segment.x === newPowerup.position.x && segment.y === newPowerup.position.y) ||
+                                   (food.position.x === newPowerup.position.x && 
+                                    food.position.y === newPowerup.position.y)) {
+                                newPowerup.randomizePosition();
+                            }
+                            
+                            powerups.push(newPowerup);
+                        }
+                        
+                        // Update level
+                        updateLevelSystem();
+                    }
+                    
+                    // Check for powerup collisions
+                    for (let i = powerups.length - 1; i >= 0; i--) {
+                        const powerup = powerups[i];
+                        powerup.update();
+                        
+                        if (head.x === powerup.position.x && head.y === powerup.position.y) {
+                            // Apply powerup effect
+                            switch (powerup.type) {
+                                case "speed_boost":
+                                    gameSpeed += 2;
+                                    break;
+                                case "slow_down":
+                                    gameSpeed = Math.max(5, gameSpeed - 1);
+                                    break;
+                                case "score_multiplier":
+                                    score += 5;
+                                    scoreDisplay.textContent = `Score: ${score}`;
+                                    break;
+                                case "shield":
+                                    // Shield logic would go here
+                                    break;
+                            }
+                            
+                            powerups.splice(i, 1);
+                            score += 3;
+                            scoreDisplay.textContent = `Score: ${score}`;
+                        } else if (Date.now() - powerup.spawnTime > 10000) {
+                            // Remove expired powerups
+                            powerups.splice(i, 1);
+                        }
+                    }
+                    
+                    lastUpdateTime += updateInterval;
+                    numUpdates++;
+                }
+                
+                // Update help timer
+                if (showHelp) {
+                    helpTimer++;
+                    if (helpTimer > 300) { // 5 seconds at 60fps
+                        showHelp = false;
+                        helpScreen.style.display = "none";
+                    }
+                }
+            }
+            
+            // Draw game elements in proper order
+            food.draw(ctx);
+            
+            // Draw powerups
+            for (const powerup of powerups) {
+                powerup.draw(ctx);
+            }
+            
+            snake.draw(ctx);
+            
+            // Draw border and level
+            drawBorder(ctx);
+            
+            // Continue the game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (gameState === "playing") {
+                switch (e.key) {
+                    case 'ArrowUp':
+                        snake.changeDirection(UP);
+                        break;
+                    case 'ArrowDown':
+                        snake.changeDirection(DOWN);
+                        break;
+                    case 'ArrowLeft':
+                        snake.changeDirection(LEFT);
+                        break;
+                    case 'ArrowRight':
+                        snake.changeDirection(RIGHT);
+                        break;
+                    case 'c':
+                    case 'C':
+                        controlMode = controlMode === "keyboard" ? "touch" : "keyboard";
+                        modeDisplay.textContent = `Mode: ${controlMode.toUpperCase()}`;
+                        break;
+                    case 'h':
+                    case 'H':
+                        showHelp = !showHelp;
+                        helpScreen.style.display = showHelp ? "flex" : "none";
+                        if (showHelp) {
+                            helpTimer = 0;
+                        }
+                        break;
+                }
+            }
+            
+            // These work in any game state
+            switch (e.key) {
+                case 'r':
+                case 'R':
+                    initGame();
+                    break;
+                case 'q':
+                case 'Q':
+                    // In a real web app, you might redirect or close a window
+                    alert('Thanks for playing!');
+                    break;
+            }
+        });
+        
+        // Touch controls for mobile
+        let touchStart = null;
+        const deadzone = 50;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (controlMode === "touch") {
+                const touch = e.touches[0];
+                touchStart = {
+                    x: touch.clientX - canvas.offsetLeft,
+                    y: touch.clientY - canvas.offsetTop
+                };
+            }
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (controlMode === "touch" && touchStart) {
+                const touch = e.changedTouches[0];
+                const endPos = {
+                    x: touch.clientX - canvas.offsetLeft,
+                    y: touch.clientY - canvas.offsetTop
+                };
+                
+                const dx = endPos.x - touchStart.x;
+                const dy = endPos.y - touchStart.y;
+                
+                if (Math.abs(dx) > deadzone || Math.abs(dy) > deadzone) {
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        snake.changeDirection(dx > 0 ? RIGHT : LEFT);
+                    } else {
+                        snake.changeDirection(dy > 0 ? DOWN : UP);
+                    }
+                }
+                
+                touchStart = null;
+            }
+        });
+        
+        // Prevent scrolling on touch devices
+        document.addEventListener('touchmove', (e) => {
+            if (controlMode === "touch") {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Initialize canvas dimensions
+        function initCanvas() {
+            canvas.width = 800;
+            canvas.height = 600;
+            canvas.style.width = '800px';
+            canvas.style.height = '600px';
+        }
+        
+        // Start the game
+        initCanvas();
+        initGame();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
